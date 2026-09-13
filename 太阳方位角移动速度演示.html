@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="50zCMG4fJWOp2gA6oyB0jo">
+<head data-page-node-id="vMiGlv9Ft5EFonPhUiVl5a">
+<meta charset="UTF-8" data-page-node-id="JRX2AuDDhlrMxnYeJtrJ5b">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" data-page-node-id="YoxiUm2MzDYneQL7VLDCCN">
+<title>太阳方位角移动速度演示</title>
+<style>
+  :root{
+    --bg:#f4f6fa; --card:#ffffff; --ink:#1e293b; --sub:#64748b;
+    --accent:#2563eb; --sun:#f59e0b; --line:#e2e8f0;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+    background:var(--bg); color:var(--ink); padding:20px; max-width:1080px; margin:0 auto;
+  }
+  h1{font-size:22px; margin-bottom:4px;}
+  .subtitle{color:var(--sub); font-size:13px; margin-bottom:16px;}
+  .card{
+    background:var(--card); border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:16px; box-shadow:0 1px 3px rgba(15,23,42,.05);
+  }
+  body > .card:first-of-type{padding:10px 14px; margin-bottom:12px;}
+  .controls{display:grid; grid-template-columns:auto auto auto auto; gap:8px 22px; justify-content:space-between; align-items:start;}
+  .ctrl.warm label{color:#ea580c;}
+  .ctrl.warm label .val{color:#ea580c;}
+  .ctrl.warm input[type=range]{accent-color:#f59e0b;}
+  .ctrl.cool label{color:var(--accent);}
+  .ctrl.cool label .val{color:var(--accent);}
+  .ctrl.cool input[type=range]{accent-color:var(--accent);}
+  @media (max-width:720px){.controls{grid-template-columns:1fr;}}
+  .ctrl label{font-size:13px; font-weight:600; display:flex; justify-content:flex-start; align-items:baseline; gap:2em; margin-bottom:3px; white-space:nowrap;}
+  .ctrl label .val{color:var(--accent); font-variant-numeric:tabular-nums; font-weight:700;}
+  input[type=range]{width:100%; accent-color:var(--accent);}
+  .rowflex{display:flex; gap:8px; align-items:center;}
+  .rowflex input[type=range]{flex:0 0 150px; width:150px; min-width:0;}
+  input[type=number]{width:72px; border:1px solid var(--line); border-radius:8px; padding:4px 6px; font-size:13px; color:var(--ink); background:#fff;}
+  input[type=date]{border:1px solid var(--line); border-radius:8px; padding:5px 8px; font-size:13px; color:var(--ink); background:#fff;}
+  .checkline{font-size:12.5px; color:var(--sub); display:flex; align-items:center; gap:6px; margin-top:2px;}
+  .presets{display:flex; flex-wrap:wrap; gap:5px; margin-top:5px;}
+  .presets button{
+    font-size:12px; border:1px solid var(--line); background:#f8fafc; color:var(--ink);
+    border-radius:999px; padding:4px 10px; cursor:pointer;
+  }
+  .presets button:hover{background:var(--accent); color:#fff; border-color:var(--accent);}
+  #locateBtn{
+    margin-left:16px; /* 加上 .rowflex 的 10px 间隙，与输入框之间正好空两格（约 26px ≈ 两汉字宽） */
+    font-size:12px; border:1px solid #bfdbfe; background:#eff6ff; color:#1e3a8a;
+    border-radius:999px; padding:4px 10px; cursor:pointer; white-space:nowrap; font-weight:600;
+  }
+  #locateBtn:hover{background:#dbeafe; border-color:#93c5fd;}
+  #locateBtn.busy{opacity:.6; cursor:progress;}
+  .playrow{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
+  #playBtn{
+    background:var(--accent); color:#fff; border:none; border-radius:10px;
+    padding:8px 18px; font-size:14px; cursor:pointer;
+  }
+  #playBtn.paused{background:#475569;}
+  select{border:1px solid var(--line); border-radius:8px; padding:6px 8px; font-size:13px; background:#fff; color:var(--ink);}
+  .viz{display:grid; grid-template-columns:400px 1fr; gap:16px;}
+  @media (max-width:860px){.viz{grid-template-columns:1fr;}}
+  #skyCanvas{width:100%; height:300px; display:block;}
+  canvas.chart{width:100%; height:300px; display:block;}
+  .chart-title{font-size:14px; font-weight:700; margin-bottom:2px;}
+  .chart-note{font-size:12px; color:var(--sub); margin-bottom:8px;}
+  .stats{display:grid; grid-template-columns:repeat(4,1fr); gap:8px;}
+  @media (max-width:720px){.stats{grid-template-columns:repeat(2,1fr);}}
+  .stat{background:#f8fafc; border:1px solid var(--line); border-radius:8px; padding:6px 10px;}
+  .stat .k{font-size:11px; color:var(--sub); margin-bottom:2px;}
+  .stat .v{font-size:13.5px; font-weight:700; font-variant-numeric:tabular-nums; line-height:1.3;}
+  .stat .v small{font-size:10.5px; color:var(--sub); font-weight:400; display:block; margin-top:1px;}
+  .footnote{font-size:12px; color:var(--sub); margin-top:14px; line-height:1.7;}
+  .legend{display:flex; gap:14px; font-size:12px; color:var(--sub); margin-bottom:6px; flex-wrap:wrap;}
+  .legend i{display:inline-block; width:14px; height:3px; border-radius:2px; vertical-align:middle; margin-right:4px;}
+  .titleRow{display:flex; justify-content:space-between; align-items:center; gap:12px;}
+  .zoomBtn{
+    font-size:12.5px; font-weight:700; border:none; background:#bfdbfe; color:#1e3a8a;
+    border-radius:8px; padding:5px 14px; cursor:pointer; white-space:nowrap;
+    box-shadow:0 1px 4px rgba(37,99,235,.2);
+  }
+  .zoomBtn:hover{background:#93c5fd;}
+  #zoomOverlay{position:fixed; inset:0; background:rgba(15,23,42,.55); display:none; align-items:center; justify-content:center; z-index:1000; padding:20px;}
+  #zoomBox{background:#fff; border-radius:14px; padding:12px 16px 16px; box-shadow:0 20px 60px rgba(15,23,42,.35); max-width:94vw; display:flex; flex-direction:column; gap:8px;}
+  #zoomHead{display:flex; justify-content:space-between; align-items:center; gap:24px;}
+  #zoomTitle{font-weight:700; font-size:15px;}
+  #zoomPlay{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer;}
+  #zoomPlay.paused{background:#475569;}
+  #zoomClose{border:1px solid var(--line); background:#f8fafc; color:var(--ink); border-radius:8px; padding:6px 14px; font-size:13px; cursor:pointer;}
+  #zoomClose:hover{background:#ef4444; color:#fff; border-color:#ef4444;}
+  #zoomCanvasWrap{min-width:0;}
+  #zoomCanvasWrap canvas{cursor:default;}
+  #zoomCtrls{display:flex; flex-wrap:wrap; gap:8px 18px; align-items:center; padding:8px 12px; border:1px solid var(--line); border-radius:10px; background:#f8fafc; font-size:13px;}
+  #zoomCtrls label{display:flex; align-items:center; gap:6px; color:#475569; white-space:nowrap;}
+  #zoomCtrls input[type=range]{width:110px;}
+  #zoomCtrls input[type=date],#zoomCtrls input[type=time],#zoomCtrls input[type=number]{border:1px solid var(--line); border-radius:8px; padding:4px 6px; font-size:13px; background:#fff; color:var(--ink);}
+  #zoomCtrls input[type=number]{width:66px;}
+  #domeCanvas{cursor:grab;}
+</style>
+</head>
+<body data-page-node-id="OADExle1AcG3QphSOkAbnZ">
+
+<h1 data-page-node-id="7YPmhcQX5WjCyUgfdVpU1M">太阳方位角移动速度演示</h1>
+<div class="subtitle" data-page-node-id="gTR8Mlt2oEyRxYuvQsELoJ">选择日期与纬度，观察一天中太阳方位角如何转动、何处转得快、何处转得慢；单击任一图可放大为浮动窗口，点「关闭放大」、遮罩或按 Esc 退出</div>
+
+<div class="card" data-page-node-id="rKyAmfMiVN101ZHFIcS8Bk">
+  <div class="controls" data-page-node-id="rhS45Ao2BdOqIUwRqegfMd">
+    <div class="ctrl" data-page-node-id="GUPzpED3cxcV3gfKiA4HXm">
+      <label data-page-node-id="EjAU8gHcsvlLQqzq3v26zJ">日期 <span class="val" id="dateVal" data-page-node-id="8Ypz17DOK3dGh0ELyOseaN"></span></label>
+      <input type="date" id="dateInput" data-page-node-id="RyizqhuhqtfiRsVnb6OJPS">
+      <div class="checkline" data-page-node-id="GelfmSxHuMleX9DRHJmUNJ">
+        <input type="checkbox" id="autoDelta" checked data-page-node-id="wBLLOca0EXogcGMBEIUKZ7">
+        <span data-page-node-id="DUWkLCQ3o3L8YYjnfzDCxL">δ 随日期自动计算（可手动调节）</span>
+      </div>
+    </div>
+    <div class="ctrl warm" data-page-node-id="7XExUN8h0gFFKdt5eE88A6">
+      <label data-page-node-id="7XExUN8h0gFFKdt5eE88A6">太阳直射点纬度 δ <span class="val" id="deltaVal" data-page-node-id="I5CNOhuYvAQmqGQv1INB7r"></span></label>
+      <div class="rowflex">
+        <input type="range" id="deltaSlider" min="-23.44" max="23.44" step="0.01" data-page-node-id="1m9Iy7DiGo3EIRyG7DHo6d">
+        <input type="number" id="deltaNum" min="-23.44" max="23.44" step="0.01" title="直接输入直射点纬度">
+      </div>
+    </div>
+    <div class="ctrl cool" data-page-node-id="qJZAEgfzMQtEcRR532KAcZ">
+      <label data-page-node-id="VdTde1AjyZnUNumBxh1c5X">当地纬度 φ <span class="val" id="phiVal" data-page-node-id="9N3O4Ckki3tEZNpK6Pxoo1"></span></label>
+      <div class="rowflex">
+        <input type="range" id="phiSlider" min="-90" max="90" step="0.1" value="29.3" data-page-node-id="VItRobEosDagiFQKEBX1ii">
+        <input type="number" id="phiNum" min="-90" max="90" step="0.1" value="29.3" title="直接输入当地纬度">
+        <button id="locateBtn" title="强制获取终端所在纬度（获取不到则用景德镇 29.3°N）">回到本地</button>
+      </div>
+      <div class="presets" id="presets" data-page-node-id="7vgIlTkQanHjtDgIvPzwrt">
+        <button data-lat="39.9" data-page-node-id="jr2AgsiUCl8rCoPVWZTcdj">北京 39.9°N</button>
+        <button data-lat="23.1" data-page-node-id="VE6cwV63BiRgKEGukHowFi">广州 23.1°N</button>
+        <button data-lat="1.4" data-page-node-id="NNBUygYOa6jz57SXtH6QFK">新加坡 1.4°N</button>
+        <button data-lat="-33.9" data-page-node-id="oTvAnHDgqoqJL8diwy7hpF">悉尼 33.9°S</button>
+      </div>
+    </div>
+    <div style="align-self:center; padding-left:4px;">
+      <img src="wangweiqing-seal.png" alt="汪为青印" title="汪为青"
+           style="width:64px; height:64px; display:block; border-radius:6px; box-shadow:0 1px 4px rgba(15,23,42,.15);">
+    </div>
+  </div>
+  <hr style="border:none;border-top:1px solid var(--line);margin:8px 0;" data-page-node-id="AJ5ctXiYnbx3VBu30GPuvR">
+  <div class="playrow" data-page-node-id="juP6J8Wh7hAXFdErS1oJWh">
+    <button id="playBtn" data-page-node-id="a9elEHaEqaaRZ8ZSCRV8XG">▶ 播放</button>
+    <select id="speedSel" title="模拟速度" data-page-node-id="g867xl9zjG4wUf6bWsnBor">
+      <option value="0.5" data-page-node-id="u5ONGRAA1rHLRcs7khnMUL">慢（0.5 小时/秒）</option>
+      <option value="1" selected data-page-node-id="6ZvHb2f5GqgFZt0qNruvWt">中（1 小时/秒）</option>
+      <option value="3" data-page-node-id="z5IJ6CwZny3LVtpxeD9sUs">快（3 小时/秒）</option>
+    </select>
+    <input type="time" id="timeInput" value="06:00" title="直接输入时刻" style="border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;background:#fff;color:var(--ink);">
+    <input type="range" id="timeSlider" min="0" max="24" step="0.05" value="6" style="flex:1; min-width:160px;" data-page-node-id="IdbiLnzaSEUARTfs60wg7H">
+    <span id="timeVal" style="font-weight:700; font-variant-numeric:tabular-nums; min-width:58px; text-align:right;" data-page-node-id="hBhrO2uTYo9adD4JXQePO2">06:00</span>
+    <button id="toggleStats" title="显示/隐藏中部信息面板" style="background:#f8fafc;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;">显示信息面板</button>
+  </div>
+</div>
+
+<div class="card" id="statsCard" style="display:none;" data-page-node-id="E4w16wzq22CSfbegz2huhy">
+  <div class="stats" id="statsRow" data-page-node-id="LM7uMTCnSmW6uGkGWV6iuA"></div>
+</div>
+
+<div class="viz" data-page-node-id="WnaTccH5EOKO7T6B5KYCfZ">
+  <div style="display:flex; flex-direction:column; gap:16px; min-width:0;">
+    <div class="card" style="margin-bottom:0;" data-page-node-id="Tqig6yClML0DQdsBcPOmqc">
+      <div class="titleRow"><div class="chart-title" data-page-node-id="Q8p2K9nnMgLJIpECnG8l7w">天空俯视图（天顶居中）</div><button class="zoomBtn" data-canvas="skyCanvas">⛶ 放大</button></div>
+      <div class="chart-note" data-page-node-id="44nwKGHBLU2nTHExIBkYEf">圆周为地平圈，越靠圆心太阳越高；橙色轨迹为白天太阳路径，橙红点为当前太阳位置</div>
+      <canvas id="skyCanvas" data-page-node-id="iYr5xKhXtxApcLT4twTY4U"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <div class="titleRow"><div class="chart-title">太阳视运动（以地平圈为基圈）</div><button class="zoomBtn" data-canvas="domeCanvas">⛶ 放大</button></div>
+      <div class="chart-note">淡灰蓝为地平圈上半球天穹，灰色为下半球，草绿色为地面；白天橙色实线、夜间灰色点虚线，橙红点为当前太阳（在地平面下时变灰），虚垂线示意高度角</div>
+      <canvas id="domeCanvas" style="width:100%;height:300px;display:block;"></canvas>
+    </div>
+  </div>
+  <div style="display:flex; flex-direction:column; gap:16px; min-width:0;" data-page-node-id="bpSIILoXwYO4rUbjrjP0ut">
+    <div class="card" style="margin-bottom:0;" data-page-node-id="yBTdZPaal7qVMwGdJVlBj5">
+      <div class="titleRow"><div class="chart-title" data-page-node-id="9m5pDvOA2xmCTz9bjivDO4">方位角 — 时刻曲线</div><button class="zoomBtn" data-canvas="azCanvas">⛶ 放大</button></div>
+      <div class="chart-note" data-page-node-id="BwCAvYVsPiv3d517QX0sG2">方位角以正北为 0°、顺时针计量（0°北 → 90°东 → 180°南 → 270°西）；白天橙色实线，夜间灰色点虚线，橙红点为当前时刻</div>
+      <canvas id="azCanvas" class="chart" data-page-node-id="TVLodKJvs6NMGxBjy9TPf5"></canvas>
+    </div>
+    <div class="card" style="margin-bottom:0;" data-page-node-id="avILEgMkVmqzXADI17NoGE">
+      <div class="titleRow"><div class="chart-title" data-page-node-id="y2DqhATgJXKHmxoL5b96wh">方位角速度 — 时刻曲线</div><button class="zoomBtn" data-canvas="spdCanvas">⛶ 放大</button></div>
+      <div class="legend" data-page-node-id="YV4PX3wrylGuWqHFFLKC6g">
+        <span data-page-node-id="l49I694BcNERiuocRCjH7k"><i style="background:#f59e0b;" data-page-node-id="Tr3CofLQV4wJLxLp9yUOnB"></i>白天：橙色实线</span>
+        <span data-page-node-id="BALoFqx9P07OZx2Y8FanEc"><i style="background:repeating-linear-gradient(90deg,#9ca3af 0 4px,transparent 4px 7px);" data-page-node-id="N8IzBGwtV6uA3RsUjsYYTf"></i>夜间：灰色点虚线</span>
+        <span data-page-node-id="aK6bn1ZfZpFNHcjde0NTvr"><i style="background:rgba(250,204,21,.45);" data-page-node-id="lftm0EyMDoYgx5pCmjzlVa"></i>白昼时段：淡黄填充</span>
+        <span data-page-node-id="aK6bn1ZfZpFNHcjde0NTvr3"><i style="background:rgba(156,163,175,.4);" data-page-node-id="lftm0EyMDoYgx5pCmjzlVa3"></i>黑夜时段：淡灰填充</span>
+      </div>
+      <div class="chart-note" style="margin-top:-2px;">纵轴为方位角速度的大小（|dA/dt|，°/h），自 0 起；白昼部分橙色实线加淡黄填充，夜间部分灰色点虚线加淡灰填充</div>
+      <div class="checkline" style="margin:2px 0 8px;">
+        <input type="checkbox" id="showNight" checked>
+        <span>显示夜间（太阳在地平线下）的方位角速度</span>
+      </div>
+      <canvas id="spdCanvas" class="chart" style="height:272px;" data-page-node-id="UIsrBmEpUJhv97GeMkNcBU"></canvas>
+    </div>
+  </div>
+</div>
+
+<div id="zoomOverlay">
+  <div id="zoomBox">
+    <div id="zoomHead">
+      <span id="zoomTitle"></span>
+      <span style="display:flex; gap:8px;">
+        <button id="zoomPlay">▶ 播放</button>
+        <button id="zoomClose">✕ 关闭放大</button>
+      </span>
+    </div>
+    <div id="zoomCtrls">
+      <label>日期 <input type="date" id="zDate"></label>
+      <label><input type="checkbox" id="zAutoDelta" checked> δ随日期</label>
+      <label>直射点纬度 <input type="range" id="zDeltaSlider" min="-23.44" max="23.44" step="0.01"><input type="number" id="zDeltaNum" min="-23.44" max="23.44" step="0.01"></label>
+      <label>地理纬度 <input type="range" id="zPhiSlider" min="-90" max="90" step="0.5"><input type="number" id="zPhiNum" min="-90" max="90" step="0.5"></label>
+      <label>时间 <input type="time" id="zTimeInput"><input type="range" id="zTimeSlider" min="0" max="24" step="0.05" style="width:130px;"></label>
+    </div>
+    <div id="zoomCanvasWrap"></div>
+  </div>
+</div>
+
+<div class="footnote" data-page-node-id="YA7TEXUwApXDAeE3vP3CFT">
+  模型说明：采用简化球面天文公式，时间取当地真太阳时，忽略均时差与大气折射；太阳赤纬由 Cooper 公式按日期估算（最大 ±23.44°）。
+  方位角速度在日出日落前后通常明显偏大，在高纬度夏季的子夜附近甚至可能出现"逆时针"（方位角倒退）的现象——调整纬度到 60° 以上即可观察。
+</div>
+
+<script>
+(function(){
+"use strict";
+const D2R=Math.PI/180, R2D=180/Math.PI;
+const $=id=>document.getElementById(id);
+
+const state={
+  dateStr:"", phi:29.3, delta:5, autoDelta:true,   // 默认纬度：演示者所在位置，取不到则用景德镇 29.3°N
+  t:6, playing:false, playSpeed:1,
+  data:null, crossings:[], stats:null, hoverT:null
+};
+
+/* ---------- 天文计算 ---------- */
+function dayOfYear(s){
+  const d=new Date(s+"T00:00:00"), start=new Date(d.getFullYear(),0,0);
+  return Math.floor((d-start)/86400000);
+}
+function declination(N){ return 23.44*Math.sin(2*Math.PI*(284+N)/365); }
+// 由直射点纬度 δ 反推对应日期（Cooper 公式反函数，取半年内解：δ>0 落在春分~夏至~秋分段，δ<0 落在秋分~冬至段）
+function dateFromDeclination(d){
+  const y=parseInt((state.dateStr||"").split("-")[0],10)||new Date().getFullYear();
+  const a=Math.asin(Math.max(-1,Math.min(1,d/23.44)));
+  let N=Math.round(365/(2*Math.PI)*a)-284;
+  N=((N-1)%365+365)%365+1;
+  const dt=new Date(y,0,N);
+  return y+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+}
+
+// 时角 H(度, 正午为0, 下午为正) → {altDeg, az}  方位角: 正北0°顺时针
+function sunAltAz(Hdeg,phiDeg,dDeg){
+  const H=Hdeg*D2R, phi=phiDeg*D2R, d=dDeg*D2R;
+  const sinAlt=Math.sin(phi)*Math.sin(d)+Math.cos(phi)*Math.cos(d)*Math.cos(H);
+  const alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)));
+  const x=Math.cos(H)*Math.sin(phi)-Math.tan(d)*Math.cos(phi);
+  const y=Math.sin(H);
+  let az=Math.atan2(y,x)*R2D+180;
+  az=((az%360)+360)%360;
+  return {altDeg:alt*R2D, az:az};
+}
+
+function computeData(){
+  const step=0.05, T=[],ALT=[],AZW=[],SPD=[];
+  const raws=[];
+  for(let t=0;t<=24+1e-9;t+=step){
+    const r=sunAltAz(15*(t-12),state.phi,state.delta);
+    T.push(t); ALT.push(r.altDeg); raws.push(r.az);
+  }
+  let unwrapped=raws[0];
+  AZW.push(raws[0]); SPD.push(null);
+  for(let i=1;i<T.length;i++){
+    let dd=raws[i]-raws[i-1];
+    if(dd>180)dd-=360; if(dd<-180)dd+=360;
+    unwrapped+=dd;
+    SPD.push(dd/step);
+    AZW.push(((unwrapped%360)+360)%360);
+  }
+  state.data={T,ALT,AZW,SPD,step,unwrappedRef:unwrapped};
+}
+
+function findCrossings(){
+  const {T,ALT,step}=state.data, res=[];
+  for(let i=1;i<T.length;i++){
+    if((ALT[i-1]<=0&&ALT[i]>0)||(ALT[i-1]>=0&&ALT[i]<0)){
+      const f=(0-ALT[i-1])/(ALT[i]-ALT[i-1]);
+      const t=T[i-1]+f*step;
+      res.push({t:t, rising:ALT[i]>ALT[i-1]});
+    }
+  }
+  return res;
+}
+
+function computeStats(){
+  const {T,ALT,AZW,SPD}=state.data;
+  let maxS=0,maxT=null,maxSigned=0;
+  for(let i=0;i<T.length;i++){
+    if(ALT[i]>0 && SPD[i]!=null && Math.abs(SPD[i])>maxS){
+      maxS=Math.abs(SPD[i]); maxT=T[i]; maxSigned=SPD[i];
+    }
+  }
+  // 白昼期间方位角总变化（未展开量）
+  let firstVis=-1,lastVis=-1;
+  for(let i=0;i<T.length;i++){ if(ALT[i]>0){ if(firstVis<0)firstVis=i; lastVis=i; } }
+  let sweep=null;
+  if(firstVis>=0&&lastVis>firstVis){
+    let u0=AZW[firstVis], acc=0, prev=AZW[firstVis];
+    for(let i=firstVis+1;i<=lastVis;i++){
+      let dd=AZW[i]-prev; if(dd>180)dd-=360; if(dd<-180)dd+=360;
+      acc+=dd; prev=AZW[i];
+    }
+    sweep=acc;
+  }
+  const minAlt=Math.min.apply(null,ALT), maxAlt=Math.max.apply(null,ALT);
+  state.stats={maxS,maxT,maxSigned,sweep,polarDay:minAlt>0,polarNight:maxAlt<0};
+}
+
+/* ---------- 工具 ---------- */
+function fmtTime(t){
+  t=((t%24)+24)%24;
+  const h=Math.floor(t), m=Math.floor((t-h)*60);
+  return String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");
+}
+function fmtLat(v){
+  const a=Math.abs(v);
+  const s=(Math.round(a*10)/10).toFixed(1);
+  return v>=0? ("北纬 "+s+"°") : ("南纬 "+s+"°");
+}
+function compassName(az){
+  const names=["北","东北","东","东南","南","西南","西","西北"];
+  return names[Math.round(((az%360)+360)%360/45)%8];
+}
+function getCtx(canvas){
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  const W=Math.max(10,Math.round(rect.width*dpr)), H=Math.max(10,Math.round(rect.height*dpr));
+  if(canvas.width!==W||canvas.height!==H){ canvas.width=W; canvas.height=H; }
+  const ctx=canvas.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,rect.width,rect.height);
+  return {ctx:ctx,w:rect.width,h:rect.height};
+}
+function currentIdx(){
+  const T=state.data.T, t=((state.t%24)+24)%24;
+  let best=0,bd=1e9;
+  for(let i=0;i<T.length;i++){ const d=Math.abs(T[i]-t); if(d<bd){bd=d;best=i;} }
+  return best;
+}
+function azAtTime(t){
+  const {T,ALT,AZW,SPD}=state.data;
+  const tt=((t%24)+24)%24;
+  let i=1; while(i<T.length&&T[i]<tt)i++;
+  if(i>=T.length)i=T.length-1;
+  const f=(tt-T[i-1])/(T[i]-T[i-1]);
+  const alt=ALT[i-1]+f*(ALT[i]-ALT[i-1]);
+  let dd=AZW[i]-AZW[i-1]; if(dd>180)dd-=360; if(dd<-180)dd+=360;
+  let az=AZW[i-1]+f*dd;
+  return {alt:alt, az:((az%360)+360)%360, spd:SPD[i]!=null?SPD[i-1]+f*(SPD[i]-SPD[i-1]):0};
+}
+
+/* ---------- 天空俯视图 ---------- */
+function drawSky(){
+  const c=$("skyCanvas"); if(!c.offsetParent&&c.clientWidth===0){} 
+  const {ctx,w,h}=getCtx(c);
+  const cx=w/2, cy=h/2, R=Math.min(w,h)/2-26;
+  ctx.save();
+  // 地平圈
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI);
+  ctx.fillStyle="#e6f4d7"; ctx.fill();
+  ctx.strokeStyle="#8bc34a"; ctx.lineWidth=1.8; ctx.stroke();
+  // 内圈(高度30/60度)
+  ctx.setLineDash([3,4]); ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1;
+  for(const f of [1/3,2/3]){
+    ctx.beginPath(); ctx.arc(cx,cy,R*f,0,2*Math.PI); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // 方位刻度
+  ctx.fillStyle="#64748b"; ctx.font="12px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  for(let a=0;a<360;a+=30){
+    const rad=a*D2R, x1=cx+Math.sin(rad)*R, y1=cy-Math.cos(rad)*R;
+    const x2=cx+Math.sin(rad)*(R-6), y2=cy-Math.cos(rad)*(R-6);
+    ctx.strokeStyle="#94a3b8"; ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
+  }
+  ctx.font="bold 14px sans-serif"; ctx.fillStyle="#334155";
+  const card=[[0,"北"],[90,"东"],[180,"南"],[270,"西"]];
+  for(const [a,n] of card){
+    const rad=a*D2R;
+    ctx.fillText(n, cx+Math.sin(rad)*(R+14), cy-Math.cos(rad)*(R+14));
+  }
+  // 南北连线与东西连线
+  ctx.strokeStyle="#cbd5e1"; ctx.lineWidth=1; ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(cx,cy-R); ctx.lineTo(cx,cy+R); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx-R,cy); ctx.lineTo(cx+R,cy); ctx.stroke();
+  // 外圈方位角度数（每 30°）
+  ctx.fillStyle="#94a3b8"; ctx.font="10px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+  for(let a=0;a<360;a+=30){
+    const rad=a*D2R;
+    ctx.fillText(a+"°", cx+Math.sin(rad)*(R-16), cy-Math.cos(rad)*(R-16));
+  }
+  // 太阳路径（仅地平线以上，裁剪到地平圈内）
+  const {T,ALT,AZW}=state.data;
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx,cy,R,0,2*Math.PI); ctx.clip();
+  ctx.strokeStyle="#f59e0b"; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  let pen=false;
+  for(let i=0;i<T.length;i++){
+    if(ALT[i]<=0){pen=false;continue;}
+    const r=(1-ALT[i]/90)*R, rad=AZW[i]*D2R;
+    const x=cx+Math.sin(rad)*r, y=cy-Math.cos(rad)*r;
+    if(!pen){ctx.moveTo(x,y);pen=true;} else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.restore();
+  // 太阳标记
+  const cur=azAtTime(state.t);
+  if(cur.alt>0){
+    const r=(1-cur.alt/90)*R, rad=cur.az*D2R;
+    const x=cx+Math.sin(rad)*r, y=cy-Math.cos(rad)*r;
+    // 太阳本体
+    const g=ctx.createRadialGradient(x,y,2,x,y,16);
+    g.addColorStop(0,"#fca07f"); g.addColorStop(1,"rgba(244,81,30,0)");
+    ctx.beginPath(); ctx.arc(x,y,16,0,2*Math.PI); ctx.fillStyle=g; ctx.fill();
+    ctx.beginPath(); ctx.arc(x,y,7,0,2*Math.PI); ctx.fillStyle="#f4511e"; ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+  } else {
+    ctx.fillStyle="#94a3b8"; ctx.font="13px sans-serif"; ctx.textAlign="center";
+    ctx.fillText("当前时刻太阳在地平线下",cx,h-14);
+  }
+  // 中心天顶
+  ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fillStyle="#64748b"; ctx.fill();
+  ctx.restore();
+}
+
+/* ---------- 太阳视运动（以地平圈为基圈的 3D 天球，可鼠标互动） ---------- */
+const domeView={yaw:-90,pitch:15,zoom:1};
+const CAMD=4;               // 相机距离（单位：球半径），决定透视强度
+const CAM_T=1/CAMD;         // 球面点可见判据：d < -CAM_T 可见，否则被球体前面遮挡
+function drawDome(){
+  const {ctx,w,h}=getCtx($("domeCanvas"));
+  const cx=w/2, cy=h*0.54;
+  const S=Math.min(w*0.40,h*0.40)*domeView.zoom;
+  const yaw=domeView.yaw*D2R, pit=domeView.pitch*D2R;
+  const cyw=Math.cos(yaw), syw=Math.sin(yaw), cp=Math.cos(pit), sp=Math.sin(pit);
+  // 透视投影：x东、y北、z上；相机距原点 CAMD·S，F 使球轮廓半径恰为 S
+  const F=S*Math.sqrt(CAMD*CAMD-1);
+  function proj(x,y,z){
+    const x1=x*cyw-y*syw, y1=x*syw+y*cyw;
+    const d=y1*cp-z*sp;                 // 深度：d<-CAM_T 朝向观察者（可见），越大越远
+    const s=F/(CAMD+d);                 // 透视除法：近大远小
+    return {x:cx+x1*s, y:cy-(y1*sp+z*cp)*s, d:d};
+  }
+  function pAA(alt,az){
+    const a=alt*D2R, z=az*D2R, ca=Math.cos(a);
+    return proj(ca*Math.sin(z), ca*Math.cos(z), Math.sin(a));
+  }
+  // 真实遮挡判据：相机→点 P(世界坐标，任意半径) 的线段与单位球相交，即被球体前面遮挡
+  function occluded(px,py,pz){
+    const x1=px*cyw-py*syw, y1=px*syw+py*cyw;
+    const Cx=0, Cy=-CAMD*cp, Cz=CAMD*sp;               // 相机位置（旋转坐标系）
+    const dx=x1-Cx, dy=y1-Cy, dz=pz-Cz;
+    const L2=dx*dx+dy*dy+dz*dz||1e-9;
+    let t=-(Cx*dx+Cy*dy+Cz*dz)/L2;                     // 原点到线段最近点
+    t=Math.max(0,Math.min(1,t));
+    const qx=Cx+dx*t, qy=Cy+dy*t, qz=Cz+dz*t;
+    return qx*qx+qy*qy+qz*qz < 1-1e-6;
+  }
+  // 视线是否被绿色地面（地平圈内的 z=0 圆盘，半径 1）遮挡：求相机→P 连线与 z=0 平面交点，交点落在圆盘内则被挡
+  function groundBlocked(px,py,pz){
+    if(pz>=0)return false;
+    const Cx=-CAMD*cp*syw, Cy=-CAMD*cp*cyw, Cz=CAMD*sp;  // 相机世界坐标
+    const t0=Cz/(Cz-pz);                                  // z=0 处的线段参数
+    const gx=Cx+(px-Cx)*t0, gy=Cy+(py-Cy)*t0;
+    return gx*gx+gy*gy<1;
+  }
+  // 相邻同类项合并为连续 run 后绘制：虚线相位在整段 run 内连续，虚线真正连贯
+  function buildRuns(items){
+    const runs=[]; let cur=null;
+    for(const it of items){
+      if(!cur||cur.key!==it.key){
+        if(cur&&cur.pts.length>1)runs.push(cur);
+        const prev=cur?cur.pts[cur.pts.length-1]:null;
+        cur={key:it.key,color:it.color,width:it.width,dash:it.dash,alpha:it.alpha,pts:prev?[prev]:[]};
+      }
+      cur.pts.push(it.pt);
+    }
+    if(cur&&cur.pts.length>1)runs.push(cur);
+    return runs;
+  }
+  function strokeRuns(runs){
+    for(const r of runs){
+      ctx.strokeStyle=r.color; ctx.lineWidth=r.width;
+      ctx.globalAlpha=r.alpha!=null?r.alpha:1;
+      ctx.setLineDash(r.dash||[]);
+      ctx.lineCap=r.dash?"butt":"round";
+      ctx.beginPath(); ctx.moveTo(r.pts[0].x,r.pts[0].y);
+      for(let i=1;i<r.pts.length;i++)ctx.lineTo(r.pts[i].x,r.pts[i].y);
+      ctx.stroke();
+    }
+    ctx.setLineDash([]); ctx.lineCap="butt"; ctx.globalAlpha=1;
+  }
+  // 球体：整个球盘先填下半球灰色，再叠上半球淡灰蓝
+  ctx.beginPath(); ctx.arc(cx,cy,S,0,2*Math.PI);
+  ctx.fillStyle="rgba(148,163,184,.32)"; ctx.fill();
+  // 上半球可见区域：近侧地平弧（可见段，至视线与球相切的切点）+ 球轮廓上弧
+  const k=1/(CAMD*Math.max(cp,1e-6));
+  if(domeView.pitch>=-2&&Math.abs(k)<0.999){
+    const DL=180/Math.PI*Math.acos(-k);            // 切点方位偏角
+    const aR=domeView.yaw+DL, aL=domeView.yaw+360-DL;
+    const pR=pAA(0,aR), pL=pAA(0,aL);
+    ctx.beginPath();
+    ctx.moveTo(pR.x,pR.y);
+    for(let a=aR+2;a<=aL;a+=2){ const p=pAA(0,a); ctx.lineTo(p.x,p.y); }
+    ctx.arc(cx,cy,S,Math.atan2(pL.y-cy,pL.x-cx),Math.atan2(pR.y-cy,pR.x-cx),false);
+    ctx.closePath();
+    ctx.fillStyle="rgba(219,234,254,.55)"; ctx.fill();
+  }else if(domeView.pitch>=-2){
+    // 近乎俯视：整盘淡灰蓝（地面绿色随后覆盖）
+    ctx.beginPath(); ctx.arc(cx,cy,S,0,2*Math.PI);
+    ctx.fillStyle="rgba(219,234,254,.55)"; ctx.fill();
+  }
+  // pitch<0（自下仰视）时上半球不可见，仅保留灰色球盘
+  // 球轮廓描边
+  ctx.beginPath(); ctx.arc(cx,cy,S,0,2*Math.PI);
+  ctx.strokeStyle="rgba(100,116,139,.5)"; ctx.lineWidth=1; ctx.stroke();
+  // 地平面草绿色（地平圈内可见地面，按透视投影为多边形）
+  ctx.beginPath();
+  for(let a=0;a<=360;a+=3){ const p=pAA(0,a); if(a===0)ctx.moveTo(p.x,p.y); else ctx.lineTo(p.x,p.y); }
+  ctx.closePath();
+  ctx.fillStyle="rgba(139,195,74,.28)"; ctx.fill();
+  // 地平圈：被球体遮挡的远侧虚线、可见的近侧实线（真实遮挡判据，颜色不变）
+  const hzItems=[];
+  for(let i=0;i<=72;i++){
+    const a=(i*5)%360, z=a*D2R;
+    const occ=occluded(Math.sin(z),Math.cos(z),0);
+    hzItems.push({key:occ?"F":"N",color:occ?"#a5d07a":"#8bc34a",width:1.5,
+                  dash:occ?[4,4]:null,pt:pAA(0,a)});
+  }
+  strokeRuns(buildRuns(hzItems));
+  // 方位刻度与度数（每 30°；被球体遮挡的刻度线用虚线，颜色不变）
+  ctx.lineWidth=1;
+  ctx.font="9px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillStyle="#94a3b8";
+  for(let a=0;a<360;a+=30){
+    const sa=Math.sin(a*D2R), ca2=Math.cos(a*D2R);
+    const t0=pAA(0,a), t1=proj(1.06*sa,1.06*ca2,0), tl=proj(1.16*sa,1.16*ca2,0);
+    ctx.strokeStyle="#94a3b8";
+    ctx.setLineDash(occluded(1.03*sa,1.03*ca2,0)?[3,3]:[]);
+    ctx.beginPath(); ctx.moveTo(t0.x,t0.y); ctx.lineTo(t1.x,t1.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillText(a+"°",tl.x,tl.y);
+  }
+  // 四正点
+  ctx.font="bold 12px sans-serif"; ctx.fillStyle="#334155";
+  for(const [a,n] of [[0,"北"],[90,"东"],[180,"南"],[270,"西"]]){
+    const p=proj(1.26*Math.sin(a*D2R),1.26*Math.cos(a*D2R),0);
+    ctx.fillText(n,p.x,p.y);
+  }
+  // 天顶
+  const zen=proj(0,0,1);
+  ctx.beginPath(); ctx.arc(zen.x,zen.y,2.5,0,2*Math.PI); ctx.fillStyle="#64748b"; ctx.fill();
+  ctx.font="10px sans-serif"; ctx.fillStyle="#64748b"; ctx.fillText("天顶",zen.x+14,zen.y);
+  // 天轴与天极：被球体遮挡的段落虚线，可见段落实线（颜色不变）
+  const phi=state.phi;
+  const axv=0, ayv=Math.cos(phi*D2R), azv=Math.sin(phi*D2R); // 北天极方向
+  const axItems=[];
+  for(let i=0;i<=60;i++){
+    const s=-1.25+2.5*i/60;
+    const wx=s*axv, wy=s*ayv, wz=s*azv;
+    const occ=occluded(wx,wy,wz);
+    axItems.push({key:occ?"O":"V",color:"#818cf8",width:1.2,
+                  dash:occ?[5,3]:null,pt:proj(wx,wy,wz)});
+  }
+  strokeRuns(buildRuns(axItems));
+  const northUp=phi>=0;
+  const P=pAA(Math.abs(phi),northUp?0:180);
+  ctx.beginPath(); ctx.arc(P.x,P.y,3,0,2*Math.PI); ctx.fillStyle="#6366f1"; ctx.fill();
+  ctx.fillStyle="#6366f1"; ctx.font="10px sans-serif";
+  ctx.fillText(northUp?"天北极":"天南极",P.x+22,P.y-6);
+  // 太阳周日视运动轨迹（真实遮挡：被球体遮挡的背面弧段用短间距虚线并降低透明度，颜色不变）
+  const {T,ALT,AZW}=state.data;
+  const ds=Math.max(1.2,Math.min(2.4,Math.min(w,h)/280)); // 虚线规格随画布尺寸缩放
+  const trItems=[];
+  for(let i=0;i<T.length;i++){
+    const a=ALT[i]*D2R, z=AZW[i]*D2R, ca=Math.cos(a);
+    const wx=ca*Math.sin(z), wy=ca*Math.cos(z), wz=Math.sin(a);
+    const night=ALT[i]<=0;
+    const occ=occluded(wx,wy,wz);
+    trItems.push({
+      key:(occ?"F":night?"N":"S")+(night?"g":"o"),
+      color:night?"#9ca3af":"#f59e0b",
+      width:night?2.6:2,
+      alpha:occ?0.45:1,
+      dash:occ?[5*ds,3*ds]:null,
+      pt:pAA(ALT[i],AZW[i])
+    });
+  }
+  strokeRuns(buildRuns(trItems));
+  // 当前太阳 + 到地平圈的垂线（示意高度角）
+  const cur=azAtTime(state.t);
+  const s3={x:Math.cos(cur.alt*D2R)*Math.sin(cur.az*D2R),
+            y:Math.cos(cur.alt*D2R)*Math.cos(cur.az*D2R),
+            z:Math.sin(cur.alt*D2R)};
+  const sp3=proj(s3.x,s3.y,s3.z);
+  // 太阳→地平圈垂线：穿过球体内部的部分被遮挡，用虚线（颜色不变）
+  const dlItems=[];
+  for(let i=0;i<=24;i++){
+    const u=i/24;
+    const wx=s3.x, wy=s3.y, wz=s3.z*(1-u);
+    const occ=occluded(wx,wy,wz);
+    dlItems.push({key:occ?"O":"V",color:"#cbd5e1",width:1,
+                  dash:occ?[3,3]:null,pt:proj(wx,wy,wz)});
+  }
+  strokeRuns(buildRuns(dlItems));
+  // 仅当视线被绿色地平圈（地面圆盘）遮挡时太阳降低透明度；在天球背面但未被地面遮挡时不淡显
+  const sunHidden=groundBlocked(s3.x,s3.y,s3.z);
+  ctx.globalAlpha=sunHidden?0.35:1;
+  if(cur.alt>=0){
+    const g=ctx.createRadialGradient(sp3.x,sp3.y,2,sp3.x,sp3.y,13);
+    g.addColorStop(0,"#fca07f"); g.addColorStop(1,"rgba(244,81,30,0)");
+    ctx.beginPath(); ctx.arc(sp3.x,sp3.y,13,0,2*Math.PI); ctx.fillStyle=g; ctx.fill();
+  }
+  ctx.beginPath(); ctx.arc(sp3.x,sp3.y,6,0,2*Math.PI);
+  ctx.fillStyle=cur.alt>=0?"#f4511e":"#9ca3af"; ctx.fill();
+  ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.globalAlpha=1;
+  ctx.fillStyle="#64748b"; ctx.font="10px sans-serif"; ctx.textAlign="left";
+  ctx.fillText((cur.alt>=0?"高度角 ":"地平线下 ")+cur.alt.toFixed(1)+"°", sp3.x+10, sp3.y-8);
+  // 操作提示
+  ctx.fillStyle="#b6c2d4"; ctx.font="10px sans-serif";
+  ctx.fillText("拖动旋转 · 滚轮缩放 · 双击复位",10,h-8);
+}
+
+/* ---------- 通用折线图 ---------- */
+function chartFrame(ctx,w,h,ml,mr,mt,mb){
+  const x0=ml,y0=mt,x1=w-mr,y1=h-mb;
+  return {x0:x0,y0:y0,x1:x1,y1:y1,pw:x1-x0,ph:y1-y0};
+}
+function drawAxes(ctx,F,xt,yt,fmtX,fmtY){
+  ctx.strokeStyle="#e2e8f0"; ctx.lineWidth=1;
+  ctx.font="11px sans-serif"; ctx.fillStyle="#64748b";
+  ctx.textAlign="center"; ctx.textBaseline="top";
+  for(const tv of xt){
+    const x=F.x0+(tv/24)*F.pw;
+    ctx.beginPath(); ctx.moveTo(x,F.y0); ctx.lineTo(x,F.y1); ctx.stroke();
+    ctx.fillText(fmtX(tv),x,F.y1+6);
+  }
+  ctx.textAlign="right"; ctx.textBaseline="middle";
+  for(const [v,label] of yt){
+    const y=F.y1-(v-F.ymin)/(F.ymax-F.ymin)*F.ph;
+    ctx.beginPath(); ctx.moveTo(F.x0,y); ctx.lineTo(F.x1,y); ctx.stroke();
+    ctx.fillText(label,F.x0-6,y);
+  }
+  // 边框
+  ctx.strokeStyle="#cbd5e1";
+  ctx.strokeRect(F.x0,F.y0,F.pw,F.ph);
+}
+function riseSetLines(ctx,F){
+  ctx.setLineDash([6,4]); ctx.strokeStyle="#b6c2d4"; ctx.lineWidth=1;
+  for(const c of state.crossings){
+    const x=F.x0+(c.t/24)*F.pw;
+    ctx.beginPath(); ctx.moveTo(x,F.y0); ctx.lineTo(x,F.y1); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+function hoverLine(ctx,F){
+  if(state.hoverT==null)return;
+  const x=F.x0+(state.hoverT/24)*F.pw;
+  ctx.setLineDash([3,3]); ctx.strokeStyle="#475569";
+  ctx.beginPath(); ctx.moveTo(x,F.y0); ctx.lineTo(x,F.y1); ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/* ---------- 方位角曲线 ---------- */
+function drawAzChart(){
+  const {ctx,w,h}=getCtx($("azCanvas"));
+  const F=chartFrame(ctx,w,h,52,14,12,26);
+  F.ymin=0; F.ymax=360;
+  const xt=[0,3,6,9,12,15,18,21,24];
+  const yt=[[0,"0° 北"],[90,"90° 东"],[180,"180° 南"],[270,"270° 西"],[360,"360° 北"]];
+  drawAxes(ctx,F,xt,yt,t=>t+"时",null);
+  riseSetLines(ctx,F);
+  const {T,ALT,AZW}=state.data;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(F.x0,F.y0,F.pw,F.ph); ctx.clip();
+  // 分段绘制：白天橙色实线，夜间灰色点虚线
+  ctx.lineWidth=2;
+  for(let i=1;i<T.length;i++){
+    if(i>0&&Math.abs(AZW[i]-AZW[i-1])>180)continue; // 0°/360° 跳变处断开
+    const night=ALT[i]<=0||ALT[i-1]<=0;
+    ctx.strokeStyle=night?"#9ca3af":"#f59e0b";
+    ctx.setLineDash(night?[2,4]:[]);
+    ctx.beginPath();
+    ctx.moveTo(F.x0+(T[i-1]/24)*F.pw, F.y1-(AZW[i-1]/360)*F.ph);
+    ctx.lineTo(F.x0+(T[i]/24)*F.pw,   F.y1-(AZW[i]/360)*F.ph);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+  // 当前点（白天橙红、夜间灰）
+  const cur=azAtTime(state.t);
+  const nightNow=cur.alt<=0;
+  const cx=F.x0+(state.t/24)*F.pw, cy=F.y1-(cur.az/360)*F.ph;
+  ctx.beginPath(); ctx.arc(cx,cy,5,0,2*Math.PI); ctx.fillStyle=nightNow?"#9ca3af":"#f4511e"; ctx.fill();
+  ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+  hoverLine(ctx,F);
+}
+
+/* ---------- 速度曲线 ---------- */
+function drawSpdChart(){
+  const {ctx,w,h}=getCtx($("spdCanvas"));
+  const F=chartFrame(ctx,w,h,52,14,12,26);
+  const {T,ALT,SPD}=state.data;
+  const showN=$("showNight").checked;
+  const vis=i=>showN||ALT[i]>0;   // 该时刻是否参与绘制（隐藏夜间时不参与）
+  let m=5;
+  for(let i=0;i<T.length;i++){ if(vis(i)&&SPD[i]!=null) m=Math.max(m,Math.abs(SPD[i])); }
+  m=Math.ceil(m/5)*5*1.1;
+  F.ymin=0; F.ymax=m;
+  const xt=[0,3,6,9,12,15,18,21,24];
+  const yt=[];
+  const stepY=m<=10?2.5:(m<=25?5:(m<=50?10:(m<=100?20:(m<=200?50:100))));
+  for(let v=0;v<=m+1e-9;v+=stepY) yt.push([v,v.toFixed(0)]);
+  drawAxes(ctx,F,xt,yt,t=>t+"时",null);
+  riseSetLines(ctx,F);
+  const xOf=t=>F.x0+(t/24)*F.pw;
+  const yOf=v=>F.y1-(v-F.ymin)/(F.ymax-F.ymin)*F.ph;
+  const zeroY=yOf(0);
+  // 曲线下部填充：白昼时段淡黄、黑夜时段淡灰（逐段梯形，互不重叠）
+  for(let i=1;i<T.length;i++){
+    if(SPD[i]==null||SPD[i-1]==null)continue;
+    const night=ALT[i]<=0||ALT[i-1]<=0;
+    if(night&&!showN)continue;
+    ctx.fillStyle=night?"rgba(156,163,175,.28)":"rgba(250,204,21,.35)";
+    ctx.beginPath();
+    ctx.moveTo(xOf(T[i-1]),zeroY);
+    ctx.lineTo(xOf(T[i-1]),yOf(Math.abs(SPD[i-1])));
+    ctx.lineTo(xOf(T[i]),yOf(Math.abs(SPD[i])));
+    ctx.lineTo(xOf(T[i]),zeroY);
+    ctx.closePath(); ctx.fill();
+  }
+  // 线（统一配色：白天橙色实线，夜间灰色点虚线；纵轴为速度绝对值）
+  ctx.lineWidth=2;
+  for(let i=1;i<T.length;i++){
+    if(SPD[i]==null||SPD[i-1]==null)continue;
+    const night=ALT[i]<=0||ALT[i-1]<=0;
+    if(night&&!showN)continue;
+    ctx.strokeStyle=night?"#9ca3af":"#f59e0b";
+    ctx.setLineDash(night?[2,4]:[]);
+    ctx.beginPath();
+    ctx.moveTo(xOf(T[i-1]),yOf(Math.abs(SPD[i-1])));
+    ctx.lineTo(xOf(T[i]),yOf(Math.abs(SPD[i])));
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  // 当前点（白天橙红、夜间灰；纵轴为绝对值）
+  const cur=azAtTime(state.t);
+  if(showN||cur.alt>0){
+    const nightNow=cur.alt<=0;
+    ctx.beginPath(); ctx.arc(xOf(state.t),yOf(Math.abs(cur.spd)),5,0,2*Math.PI);
+    ctx.fillStyle=nightNow?"#9ca3af":"#f4511e"; ctx.fill();
+    ctx.strokeStyle="#fff"; ctx.lineWidth=1.5; ctx.stroke();
+  }
+  // 最大值标注
+  if(state.stats&&state.stats.maxT!=null){
+    ctx.fillStyle="#7c3aed"; ctx.font="bold 11px sans-serif"; ctx.textAlign="left"; ctx.textBaseline="top";
+    ctx.fillText("白天峰值 "+Math.abs(state.stats.maxSigned).toFixed(1)+"°/h @ "+fmtTime(state.stats.maxT),F.x0+8,F.y0+6);
+  }
+  hoverLine(ctx,F);
+}
+
+/* ---------- 信息面板 ---------- */
+function updateInfo(){
+  const cur=azAtTime(state.t);
+  const rise=state.crossings.find(c=>c.rising);
+  const set=state.crossings.find(c=>!c.rising);
+  const s=state.stats;
+  const items=[];
+  items.push({k:"当前真太阳时",v:fmtTime(state.t),s:cur.alt>0?"太阳在地平线上":"太阳在地平线下"});
+  items.push({k:"太阳高度角",v:cur.alt.toFixed(1)+"°",s:cur.alt>0?"":"不可见"});
+  items.push({k:"当前方位角",v:cur.az.toFixed(1)+"°",s:compassName(cur.az)+"方向"});
+  const dir=cur.spd>=0?"顺时针 ↻":"逆时针 ↺";
+  items.push({k:"方位角速度",v:Math.abs(cur.spd).toFixed(2)+"°/h",s:dir});
+  if(s.polarDay){
+    items.push({k:"极昼",v:"太阳整日不落",s:"无日出日落"});
+  } else if(s.polarNight){
+    items.push({k:"极夜",v:"太阳整日不升",s:"无日出日落"});
+  } else {
+    items.push({k:"日出",v:rise?fmtTime(rise.t):"—",s:rise?(compassName(azAtTime(rise.t).az)+"方位"):""});
+    items.push({k:"日落",v:set?fmtTime(set.t):"—",s:set?(compassName(azAtTime(set.t).az)+"方位"):""});
+  }
+  items.push({k:"白天方位角速度峰值",v:s.maxT!=null?Math.abs(s.maxSigned).toFixed(1)+"°/h":"—",s:s.maxT!=null?("出现在 "+fmtTime(s.maxT)):""});
+  items.push({k:"白昼方位角总变化",v:s.sweep!=null?Math.abs(s.sweep).toFixed(0)+"°":"—",s:s.sweep!=null?(s.sweep>=0?"整体顺时针":"整体逆时针"):""});
+  const row=$("statsRow");
+  row.innerHTML=items.map(it=>
+    '<div class="stat"><div class="k">'+it.k+'</div><div class="v">'+it.v+
+    (it.s?'<small>'+it.s+'</small>':"")+'</div></div>').join("");
+}
+
+/* ---------- 刷新与事件 ---------- */
+function drawAll(){ drawSky(); drawDome(); drawAzChart(); drawSpdChart(); }
+function recompute(){
+  if(state.autoDelta){
+    const N=dayOfYear(state.dateStr);
+    state.delta=Math.round(declination(N)*100)/100;
+    $("deltaSlider").value=state.delta;
+  }
+  if(document.activeElement!==$("deltaNum")) $("deltaNum").value=state.delta;
+  $("deltaVal").textContent=fmtLat(state.delta);
+  $("dateVal").textContent=state.dateStr;
+  computeData();
+  state.crossings=findCrossings();
+  computeStats();
+  drawAll(); updateInfo(); syncZoomCtrls();
+}
+function onTimeChange(){
+  $("timeSlider").value=state.t;
+  $("timeVal").textContent=fmtTime(state.t);
+  $("timeInput").value=fmtTime(state.t);
+  drawAll(); updateInfo(); syncZoomCtrls();
+}
+// 放大窗口控件与主面板双向同步：任何参数变化后镜像到放大窗控件
+function syncZoomCtrls(){
+  $("zDate").value=state.dateStr;
+  $("zAutoDelta").checked=state.autoDelta;
+  $("zDeltaSlider").value=state.delta;
+  if(document.activeElement!==$("zDeltaNum"))$("zDeltaNum").value=state.delta;
+  $("zPhiSlider").value=state.phi;
+  if(document.activeElement!==$("zPhiNum"))$("zPhiNum").value=state.phi;
+  $("zTimeSlider").value=state.t;
+  if(document.activeElement!==$("zTimeInput"))$("zTimeInput").value=fmtTime(state.t);
+}
+
+function init(){
+  const now=new Date();
+  state.dateStr=now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-"+String(now.getDate()).padStart(2,"0");
+  $("dateInput").value=state.dateStr;
+  $("phiSlider").value=state.phi;
+  $("phiNum").value=state.phi;
+  $("phiVal").textContent=fmtLat(state.phi);
+
+  // 当地纬度：优先取演示者所在位置的纬度；获取不到（拒绝授权/超时/不支持）则用景德镇 29.3°N
+  const JDZ_LAT=29.3;
+  function applyLat(v){
+    state.phi=Math.max(-90,Math.min(90,Math.round(v*10)/10));
+    $("phiSlider").value=state.phi;
+    $("phiNum").value=state.phi;
+    $("phiVal").textContent=fmtLat(state.phi);
+    recompute();
+  }
+  // 获取终端地理纬度：成功→赋值；失败→useFallbackOnFail 为真时强制赋景德镇纬度，否则保持现值
+  function locateLat(useFallbackOnFail, cb){
+    const finish=v=>{
+      if(v!==null&&isFinite(v)) applyLat(v);
+      else if(useFallbackOnFail) applyLat(JDZ_LAT);
+      if(cb) cb();
+    };
+    if(!navigator.geolocation){ finish(null); return; }
+    navigator.geolocation.getCurrentPosition(
+      pos=>finish(pos&&pos.coords&&isFinite(pos.coords.latitude)?pos.coords.latitude:null),
+      ()=>finish(null),
+      {enableHighAccuracy:!!useFallbackOnFail, timeout:useFallbackOnFail?8000:6000, maximumAge:useFallbackOnFail?0:600000}
+    );
+  }
+  locateLat(false);   // 页面初始：定位失败保持景德镇默认值
+
+  // 「回到本地」按钮：强制重新定位，获取不到则赋景德镇纬度
+  $("locateBtn").addEventListener("click",()=>{
+    const b=$("locateBtn");
+    if(b.classList.contains("busy")) return;
+    b.classList.add("busy"); b.textContent="定位中…";
+    locateLat(true,()=>{ b.classList.remove("busy"); b.textContent="回到本地"; });
+  });
+
+  function setDelta(v){
+    state.autoDelta=false; $("autoDelta").checked=false;
+    state.delta=Math.max(-23.44,Math.min(23.44,v));
+    $("deltaSlider").value=state.delta;
+    if(document.activeElement!==$("deltaNum")) $("deltaNum").value=state.delta;
+    // δ 反推日期并联动
+    state.dateStr=dateFromDeclination(state.delta);
+    $("dateInput").value=state.dateStr;
+    recompute();
+  }
+  $("dateInput").addEventListener("change",e=>{state.dateStr=e.target.value||state.dateStr; recompute();});
+  $("autoDelta").addEventListener("change",e=>{state.autoDelta=e.target.checked; recompute();});
+  $("deltaSlider").addEventListener("input",e=>{
+    setDelta(parseFloat(e.target.value));
+  });
+  $("deltaNum").addEventListener("input",e=>{
+    const v=parseFloat(e.target.value);
+    if(isNaN(v))return;
+    if(v<-23.44||v>23.44)return;
+    setDelta(v);
+  });
+  $("phiSlider").addEventListener("input",e=>{
+    state.phi=parseFloat(e.target.value);
+    $("phiVal").textContent=fmtLat(state.phi);
+    if(document.activeElement!==$("phiNum")) $("phiNum").value=state.phi;
+    recompute();
+  });
+  $("phiNum").addEventListener("input",e=>{
+    const v=parseFloat(e.target.value);
+    if(isNaN(v)||v<-90||v>90)return;
+    state.phi=Math.max(-90,Math.min(90,v));
+    $("phiSlider").value=state.phi;
+    $("phiVal").textContent=fmtLat(state.phi); recompute();
+  });
+  $("showNight").addEventListener("change",()=>{drawSpdChart(); updateInfo();});
+  $("presets").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b)return;
+    state.phi=parseFloat(b.dataset.lat);
+    $("phiSlider").value=state.phi;
+    $("phiNum").value=state.phi;
+    $("phiVal").textContent=fmtLat(state.phi); recompute();
+  });
+  $("timeSlider").addEventListener("input",e=>{state.t=parseFloat(e.target.value); onTimeChange();});
+  $("timeInput").addEventListener("change",e=>{
+    if(!e.target.value)return;
+    const p=e.target.value.split(":");
+    state.t=(+p[0])+(+p[1])/60;
+    onTimeChange();
+  });
+  // 3D 天球鼠标互动：拖动旋转 / 滚轮缩放 / 双击复位
+  const dc=$("domeCanvas");
+  dc.style.cursor="grab";
+  let drag=false, lx=0, ly=0;
+  dc.addEventListener("mousedown",e=>{drag=true; lx=e.clientX; ly=e.clientY; dc.style.cursor="grabbing";});
+  window.addEventListener("mousemove",e=>{
+    if(!drag)return;
+    domeView.yaw=(domeView.yaw+(e.clientX-lx)*0.5+360)%360;
+    domeView.pitch=Math.max(-80,Math.min(85,domeView.pitch+(e.clientY-ly)*0.3));
+    lx=e.clientX; ly=e.clientY; drawDome();
+  });
+  window.addEventListener("mouseup",()=>{drag=false; dc.style.cursor="grab";});
+  dc.addEventListener("wheel",e=>{
+    e.preventDefault();
+    domeView.zoom=Math.max(0.6,Math.min(2.2,domeView.zoom*(e.deltaY<0?1.1:0.9)));
+    drawDome();
+  },{passive:false});
+  dc.addEventListener("dblclick",()=>{domeView.yaw=-90; domeView.pitch=15; domeView.zoom=1; drawDome();});
+  $("speedSel").addEventListener("change",e=>{state.playSpeed=parseFloat(e.target.value);});
+  // 放大窗口内的参数控件：调用与主面板相同的处理函数，经 syncZoomCtrls 双向联动
+  $("zDate").addEventListener("change",e=>{state.dateStr=e.target.value||state.dateStr; recompute();});
+  $("zAutoDelta").addEventListener("change",e=>{state.autoDelta=e.target.checked; recompute();});
+  $("zDeltaSlider").addEventListener("input",e=>setDelta(parseFloat(e.target.value)));
+  $("zDeltaNum").addEventListener("input",e=>{
+    const v=parseFloat(e.target.value);
+    if(isNaN(v)||v<-23.44||v>23.44)return;
+    setDelta(v);
+  });
+  $("zPhiSlider").addEventListener("input",e=>{
+    state.phi=parseFloat(e.target.value);
+    $("phiSlider").value=state.phi; $("phiNum").value=state.phi;
+    $("phiVal").textContent=fmtLat(state.phi); recompute();
+  });
+  $("zPhiNum").addEventListener("input",e=>{
+    const v=parseFloat(e.target.value);
+    if(isNaN(v)||v<-90||v>90)return;
+    state.phi=Math.max(-90,Math.min(90,v));
+    $("phiSlider").value=state.phi; $("phiNum").value=state.phi;
+    $("phiVal").textContent=fmtLat(state.phi); recompute();
+  });
+  $("zTimeSlider").addEventListener("input",e=>{state.t=parseFloat(e.target.value); onTimeChange();});
+  $("zTimeInput").addEventListener("change",e=>{
+    if(!e.target.value)return;
+    const p=e.target.value.split(":");
+    state.t=(+p[0])+(+p[1])/60;
+    onTimeChange();
+  });
+  // 信息面板显隐
+  $("toggleStats").addEventListener("click",()=>{
+    const card=$("statsCard"), btn=$("toggleStats");
+    const hide=card.style.display!=="none";
+    card.style.display=hide?"none":"";
+    btn.textContent=hide?"显示信息面板":"隐藏信息面板";
+  });
+
+  // 播放：主界面与放大窗口共用
+  function setPlayingUI(){
+    const t=state.playing?"⏸ 暂停":"▶ 播放";
+    $("playBtn").textContent=t;
+    $("playBtn").classList.toggle("paused",state.playing);
+    $("zoomPlay").textContent=t;
+    $("zoomPlay").classList.toggle("paused",state.playing);
+  }
+  function togglePlay(){
+    state.playing=!state.playing;
+    setPlayingUI();
+    if(state.playing){
+      if(state.t>=23.99)state.t=0;
+      let last=performance.now();
+      (function loop(now){
+        if(!state.playing)return;
+        const dt=(now-last)/1000; last=now;
+        state.t=(state.t+state.playSpeed*dt)%24;
+        onTimeChange();
+        requestAnimationFrame(loop);
+      })(performance.now());
+    }
+  }
+  $("playBtn").addEventListener("click",togglePlay);
+  $("zoomPlay").addEventListener("click",togglePlay);
+
+  // 图表悬停
+  function bindHover(id){
+    const c=$(id);
+    c.addEventListener("mousemove",e=>{
+      const r=c.getBoundingClientRect();
+      const F={x0:52,x1:r.width-14};
+      const t=Math.max(0,Math.min(24,(e.clientX-r.left-F.x0)/(F.x1-F.x0)*24));
+      state.hoverT=t; drawAzChart(); drawSpdChart();
+    });
+    c.addEventListener("mouseleave",()=>{state.hoverT=null; drawAzChart(); drawSpdChart();});
+  }
+  bindHover("azCanvas"); bindHover("spdCanvas");
+
+  // 「放大」按钮 → 浮动放大窗口
+  const zoomDraw={skyCanvas:drawSky, domeCanvas:drawDome, azCanvas:drawAzChart, spdCanvas:drawSpdChart};
+  const zoomTitles={
+    skyCanvas:"天空俯视图（天顶居中）",
+    domeCanvas:"太阳视运动（以地平圈为基圈）· 3D 天球",
+    azCanvas:"方位角 — 时刻曲线",
+    spdCanvas:"方位角速度 — 时刻曲线"
+  };
+  let zoomSaved=null;
+  function openZoom(id){
+    if(zoomSaved)return;
+    const c=$(id);
+    zoomSaved={id:id, parent:c.parentNode, next:c.nextSibling, css:c.getAttribute("style")||""};
+    $("zoomTitle").textContent=zoomTitles[id];
+    $("zoomCanvasWrap").appendChild(c);
+    c.setAttribute("style","width:min(88vw,1100px); height:min(78vh,700px); display:block;");
+    $("zoomOverlay").style.display="flex";
+    zoomDraw[id]();
+  }
+  function closeZoom(){
+    if(!zoomSaved)return;
+    const c=$(zoomSaved.id);
+    c.setAttribute("style",zoomSaved.css);
+    zoomSaved.parent.insertBefore(c,zoomSaved.next);
+    zoomSaved=null;
+    $("zoomOverlay").style.display="none";
+    drawAll();
+  }
+  document.querySelectorAll(".zoomBtn").forEach(b=>{
+    b.addEventListener("click",e=>{e.stopPropagation(); openZoom(b.dataset.canvas);});
+  });
+  $("zoomClose").addEventListener("click",closeZoom);
+  $("zoomOverlay").addEventListener("click",e=>{if(e.target===e.currentTarget)closeZoom();});
+  window.addEventListener("keydown",e=>{if(e.key==="Escape")closeZoom();});
+
+  window.addEventListener("resize",()=>{drawAll();});
+
+  recompute();
+  onTimeChange();
+}
+init();
+})();
+</script>
+</body>
+</html>
